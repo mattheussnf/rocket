@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br"> 
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Rocket</title>
+
+	<style>
+
+		body {
+			padding: 0;
+			margin: 0;
+		}
+
+		header, footer {
+			height: 40px;
+		}
+
+		header {
+			border-bottom: solid 1px #DDD;
+		}
+
+		footer {
+			border-top: solid 1px #DDD;
+		}
+		
+		main {
+			height: calc(100vh - 120px);
+			width: 100%;
+			display: flex;
+			justify-content: center;
+			flex-direction: row;
+			box-sizing: border-box;
+		}
+
+		#frame {
+			border: solid 1px #EEE;
+			width: 100%;
+		}
+
+		#scene {
+			border: solid 1px #F00;
+			width: 100%;
+			height: 100%;
+		}
+
+		#rocket {
+			width: 32px;
+			height: 96px;
+			border: solid 1px #00F;
+			top: calc(30% - 138px);
+			position: absolute;
+			left: calc(50% - 16px);
+		}
+
+		#platform {
+			width: 204px;
+			height: 12px;
+			border: solid 1px #FF0;
+			top: calc(100% - 80px);
+			position: absolute;
+			left: calc(50% - 102px);
+		}
+
+		#satelite {
+			width: 20px;
+			height: 20px;
+			border: solid 1px #f0f;
+			border-radius: 50%;
+		}
+
+	</style>
+
+</head>
+<body>
+	<header>
+		scores do jogo
+	</header>
+
+	<main> 
+		<div id="frame">
+			<div id="scene">
+
+				<div id="satelite"></div>
+				<div id="rocket"></div>
+				<div id="platform"></div>
+
+			</div>
+		</div>
+	</main>
+
+	<footer>
+		scores
+		<div id="debug"></div>
+	</footer>
+	
+</body>
+
+<script src="./rocket.js" type="module"></script>
+<script>
+
+	class Scene {
+
+		element = null;
+		top = 0
+		left = 0;
+		right = 0;
+		bottom = 0;
+
+		constructor() {
+			this.element = document.querySelector('#scene');
+			this.init();
+		}
+
+		init() {
+			this.extracyGeometric();
+		}
+
+		extracyGeometric(){
+			this.top = this.element.offsetTop || 0;
+			this.left = this.element.offsetLeft || 0;
+			this.right = this.element.offsetLeft + this.element.offsetWidth || 0;
+			this.bottom = this.element.offsetTop + this.element.offsetHeight || 0;
+		}
+	}
+
+	class Rocket {
+
+		element = null;
+		positionTop = 0;
+		wasCollided = false;
+
+		top = 0
+		left = 0;
+		right = 0;
+		bottom = 0;
+
+		constructor() {
+			this.element = document.querySelector('#rocket');
+			this.init();
+		}
+
+		init() {
+			this.element.style.position = 'absolute';
+			this.positionTop = this.element.offsetTop || 0;
+			this.extracyGeometric();
+		}
+
+		extracyGeometric(){
+			this.top = this.element.offsetTop || 0;
+			this.left = this.element.offsetLeft || 0;
+			this.right = this.element.offsetLeft + this.element.offsetWidth || 0;
+			this.bottom = this.element.offsetTop + this.element.offsetHeight || 0;
+		}
+
+		update(){
+			this.extracyGeometric();
+			this.gravity();
+		}
+
+		gravity() {
+
+			if (this.wasCollided) {
+				return;
+			}
+			
+			this.positionTop = this.positionTop + 1;
+			this.element.style.top = `${this.positionTop}px`;
+		}
+
+		debug(){
+			var debug = document.querySelector('#debug');
+			debug.innerHTML = "Rocket: " + this.bottom;
+		}
+
+		isCollision() {
+			return  (actor) => {
+				return this.wasCollided = this.bottom >= actor.top;
+			}
+		}
+	}
+
+	class Platform {
+
+		element = null;
+		positionTop = 678;
+		wasCollided = false;
+
+		top = 0
+		left = 0;
+		right = 0;
+		bottom = 0;
+
+		constructor() {
+			this.element = document.querySelector('#platform');
+			this.init();
+		}
+
+		init() {
+			this.element.style.position = 'absolute';
+			this.positionTop = this.element.offsetTop || 0;
+			this.extracyGeometric();
+		}
+
+		extracyGeometric(){
+			this.top = this.element.offsetTop || 0;
+			this.left = this.element.offsetLeft || 0;
+			this.right = this.element.offsetLeft + this.element.offsetWidth || 0;
+			this.bottom = this.element.offsetTop + this.element.offsetHeight || 0;
+		}
+
+		update(){
+			this.extracyGeometric();
+			// this.gravity();
+		}
+
+		gravity() {
+
+			if (this.wasCollided) {
+				return;
+			}
+			
+			this.positionTop = this.positionTop + 1;
+			this.element.style.top = `${this.positionTop}px`;
+		}
+
+		debug(){
+		// 	var debug = document.querySelector('#debug');
+		// 	debug.innerHTML = "Platform: " + this.top;
+		}
+	}
+
+	class Engine {
+
+		actors = [];
+		scene = new Scene();
+		
+		sleep(ms) {
+  			return new Promise(resolve => setTimeout(resolve, ms));
+		}
+
+		add(actor) {
+			this.actors.push(actor);
+		}
+
+		// deve inicar uma execução do motor
+		async run() {
+			// loop infinito (60 vezes por segundo)
+			while (true) { 
+				// itera sobre os atores
+				for (let actor of this.actors) {
+					 await this.update(actor);
+				}
+
+				await this.sleep(10); 
+			};
+		}
+
+		update(actor) {
+			
+			const actors = this.actors.filter((a)=> a != actor);
+			actors.map((a) => {
+				const colliderActor = (actor.bottom >= a.top && actor.left <= a.right && actor.right >= a.left);
+				const colliderScene = actor.bottom >= this.scene.bottom;
+				actor.wasCollided = colliderActor;
+			});
+			
+			actor.update();
+			actor.debug();
+		}
+	}
+
+	var scene = new Scene();
+	var rocket = new Rocket();
+	var platform = new Platform();
+	const eng = new Engine();
+	eng.add(rocket);
+	// eng.add(platform);
+	eng.run();
+	
+
+</script>
+
+</html>
